@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Al-Qur'an Digital | Leviathan</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Amiri&family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+
+<style>
+body{
+  margin:0;
+  font-family:'Poppins',sans-serif;
+  background:linear-gradient(135deg,#0f2027,#203a43,#2c5364);
+  color:white;
+}
+
+header{
+  padding:20px;
+  text-align:center;
+  background:rgba(0,0,0,0.6);
+}
+
+.controls{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:10px;
+  margin-top:15px;
+}
+
+select,input,button{
+  padding:10px 15px;
+  border-radius:25px;
+  border:none;
+  font-size:15px;
+}
+
+button{
+  background:#00c9a7;
+  color:white;
+  font-weight:bold;
+}
+
+.container{
+  max-width:900px;
+  margin:auto;
+  padding:20px;
+}
+
+.surah{
+  margin-top:30px;
+  padding:20px;
+  border-radius:15px;
+  background:rgba(255,255,255,0.08);
+}
+
+.start-btn{
+  display:block;
+  margin:20px auto;
+  background:#ff9800;
+}
+
+.arabic{
+  font-family:'Amiri',serif;
+  font-size:26px;
+  text-align:right;
+  direction:rtl;
+  line-height:2.2;
+}
+
+.translation{
+  font-size:15px;
+  margin-top:8px;
+  opacity:0.9;
+}
+
+audio{
+  width:100%;
+  margin:15px 0;
+}
+</style>
+</head>
+<body>
+
+<header>
+<h1>Al-Qur'an Digital</h1>
+<p>Klik Mulai Baca Surah untuk Audio</p>
+
+<div class="controls">
+<select id="surahSelect"></select>
+<button onclick="loadSurah()">Buka Surah</button>
+<input type="text" id="searchInput" placeholder="Cari Surah...">
+</div>
+</header>
+
+<div class="container" id="quranContainer">
+<p style="text-align:center;">Pilih Surah lalu klik Buka Surah</p>
+</div>
+
+<script>
+const surahNames = [
+"Al-Fatihah","Al-Baqarah","Ali 'Imran","An-Nisa","Al-Ma'idah","Al-An'am",
+"Al-A'raf","Al-Anfal","At-Taubah","Yunus","Hud","Yusuf","Ar-Ra'd",
+"Ibrahim","Al-Hijr","An-Nahl","Al-Isra","Al-Kahf","Maryam","Ta-Ha",
+"Al-Anbiya","Al-Hajj","Al-Mu'minun","An-Nur","Al-Furqan","Ash-Shu'ara",
+"An-Naml","Al-Qasas","Al-Ankabut","Ar-Rum","Luqman","As-Sajdah",
+"Al-Ahzab","Saba","Fatir","Ya-Sin","As-Saffat","Sad","Az-Zumar",
+"Ghafir","Fussilat","Ash-Shura","Az-Zukhruf","Ad-Dukhan","Al-Jathiyah",
+"Al-Ahqaf","Muhammad","Al-Fath","Al-Hujurat","Qaf","Adh-Dhariyat",
+"At-Tur","An-Najm","Al-Qamar","Ar-Rahman","Al-Waqi'ah","Al-Hadid",
+"Al-Mujadila","Al-Hashr","Al-Mumtahanah","As-Saff","Al-Jumu'ah",
+"Al-Munafiqun","At-Taghabun","At-Talaq","At-Tahrim","Al-Mulk",
+"Al-Qalam","Al-Haqqah","Al-Ma'arij","Nuh","Al-Jinn","Al-Muzzammil",
+"Al-Muddathir","Al-Qiyamah","Al-Insan","Al-Mursalat","An-Naba",
+"An-Nazi'at","Abasa","At-Takwir","Al-Infitar","Al-Mutaffifin",
+"Al-Inshiqaq","Al-Buruj","At-Tariq","Al-A'la","Al-Ghashiyah",
+"Al-Fajr","Al-Balad","Ash-Shams","Al-Lail","Ad-Duha","Ash-Sharh",
+"At-Tin","Al-Alaq","Al-Qadr","Al-Bayyinah","Az-Zalzalah","Al-Adiyat",
+"Al-Qari'ah","At-Takathur","Al-Asr","Al-Humazah","Al-Fil",
+"Quraysh","Al-Ma'un","Al-Kawthar","Al-Kafirun","An-Nasr",
+"Al-Masad","Al-Ikhlas","Al-Falaq","An-Nas"
+];
+
+const select = document.getElementById("surahSelect");
+const container = document.getElementById("quranContainer");
+const searchInput = document.getElementById("searchInput");
+
+// Isi dropdown manual (PASTI MUNCUL)
+surahNames.forEach((name,i)=>{
+  const opt = document.createElement("option");
+  opt.value = i+1;
+  opt.textContent = (i+1)+". "+name;
+  select.appendChild(opt);
+});
+
+async function loadSurah(){
+  const num = select.value;
+  container.innerHTML="Memuat Surah...";
+
+  const arabicRes = await fetch(`https://api.alquran.cloud/v1/surah/${num}`);
+  const indoRes = await fetch(`https://api.alquran.cloud/v1/surah/${num}/id.indonesian`);
+
+  const arabic = await arabicRes.json();
+  const indo = await indoRes.json();
+
+  container.innerHTML="";
+
+  const div=document.createElement("div");
+  div.className="surah";
+
+  div.innerHTML=`
+    <h2>${surahNames[num-1]} (${num})</h2>
+    <button class="start-btn" onclick="playAudio(${num})">
+    ▶ Mulai Baca Surah
+    </button>
+    <div id="audioContainer"></div>
+  `;
+
+  arabic.data.ayahs.forEach((a,i)=>{
+    const ay=document.createElement("div");
+    ay.className="ayah";
+    ay.innerHTML=`
+      <div class="arabic">${a.text} ۝${a.numberInSurah}</div>
+      <div class="translation">${indo.data.ayahs[i].text}</div>
+    `;
+    div.appendChild(ay);
+  });
+
+  container.appendChild(div);
+}
+
+function playAudio(num){
+  const audioContainer=document.getElementById("audioContainer");
+  audioContainer.innerHTML="";
+  const audio=new Audio(`https://cdn.islamic.network/quran/audio-surah/128/ar.alafasy/${num}.mp3`);
+  audio.controls=true;
+  audio.autoplay=true;
+  audioContainer.appendChild(audio);
+}
+
+// Search
+searchInput.addEventListener("keyup",function(){
+  const val=this.value.toLowerCase();
+  const options=select.options;
+  for(let i=0;i<options.length;i++){
+    options[i].style.display=
+      options[i].text.toLowerCase().includes(val)?"block":"none";
+  }
+});
+</script>
+
+</body>
+</html>
